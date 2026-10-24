@@ -138,9 +138,9 @@
 
   // ---- layouts (local units, before slot scale) ----
   const L={
-    stack:{h:16.6,w:5.6,b:{wine:[0,-3.14,0, 0,0,.04],charcoal:[.18,1.42,0, 0,0,-.1],aloe:[-.12,5.98,0, 0,0,.13]}},
-    trio:{h:7.6,w:8,b:{}},
-    single:{h:6.4,w:6.4}};
+    stack:{h:16,w:5,b:{wine:[0,-3.14,0, 0,0,.04],charcoal:[.18,1.42,0, 0,0,-.1],aloe:[-.12,5.98,0, 0,0,.13]}},
+    trio:{h:7.6,w:7.6,b:{}},
+    single:{h:5.4,w:5.2}};
   ['wine','charcoal','aloe'].forEach(k=>{const s=seat(k);L.trio.b[k]=[s[0],s[1],.3,0,0,0]});
   const S={},T={};const keys=['wine','charcoal','aloe'];
   keys.forEach(k=>{S[k]={x:0,y:0,z:0,rx:0,ry:0,rz:0,s:0};T[k]=Object.assign({},S[k])});
@@ -149,24 +149,24 @@
   window.__safi={variant:'aloe'};
   let mx=0,my=0;addEventListener('pointermove',e=>{mx=e.clientX/innerWidth-.5;my=e.clientY/innerHeight-.5},{passive:true});
   let W=0,H=0,D=0;const cvEl=R.domElement;
-  function size(force){const cw=cvEl.clientWidth||innerWidth,ch=cvEl.clientHeight||innerHeight,d=Math.min(devicePixelRatio||1,2);
+  function size(force){const cw=cvEl.clientWidth||innerWidth,ch=cvEl.clientHeight||innerHeight,d=Math.min(devicePixelRatio||1,innerWidth<700?1.5:2);
     if(!force&&cw===W&&ch===H&&d===D)return;W=cw;H=ch;D=d;R.setPixelRatio(D);R.setSize(W,H,false);cam.aspect=W/H;cam.updateProjectionMatrix()}
   size(true);addEventListener('resize',()=>size());addEventListener('orientationchange',()=>setTimeout(()=>size(true),250));
   if(window.visualViewport)visualViewport.addEventListener('resize',()=>size());
   const visH=()=>2*cam.position.z*Math.tan(cam.fov*Math.PI/360);
   function pick(){const mid=H*.5;let best=slots[0],bd=1e9;for(const s of slots){const r=s.sec.getBoundingClientRect();const d=r.top<=mid&&r.bottom>=mid?0:Math.min(Math.abs(r.top-mid),Math.abs(r.bottom-mid));if(d<bd){bd=d;best=s}}return best}
   let spin=0,last=performance.now(),first=true,F={x:0,y:0,s:1};
-  function tick(t){size();const dt=Math.min(.05,(t-last)/1000);last=t;
+  function tick(t){if(document.hidden){requestAnimationFrame(tick);return}size();const dt=Math.min(.05,(t-last)/1000);last=t;
     const s=pick(),r=s.el.getBoundingClientRect(),c=s.cfg,k=visH()/H,lay=L[c.lay]||L.single;
-    const cx=((r.left+r.width/2)-W/2)*k,cy=-((r.top+r.height/2)-H/2)*k,sc=Math.min(r.width*k/lay.w,r.height*k/lay.h);
+    const cx=((r.left+r.width/2)-W/2)*k,cy=-((r.top+r.height/2)-H/2)*k,sc=Math.min(r.width*k/lay.w,r.height*k/lay.h)*(c.z||1);
     if(!reduce)spin+=dt*(c.spin||.4);
     const variant=c.v==='quiz'?window.__safi.variant:c.v;
     keys.forEach(kk=>{const t2=T[kk];
       if(c.lay==='stack'||c.lay==='trio'){const b=lay.b[kk];t2.x=b[0];t2.y=b[1];t2.z=b[2];const still=c.lay==='trio';t2.rx=0;t2.ry=0;t2.rz=still?0:b[5]+(reduce?0:Math.sin(t/1600+keys.indexOf(kk))*.025);t2.s=1}
-      else if(kk===variant){t2.x=0;t2.y=0;t2.z=0;t2.rx=0;t2.ry=0;t2.rz=-.12+(reduce?0:Math.sin(t/1400)*.04+mx*.05);t2.s=1.35}
+      else if(kk===variant){t2.x=0;t2.y=0;t2.z=0;t2.rx=0;t2.ry=0;t2.rz=-.12+(reduce?0:Math.sin(t/1400)*.04+mx*.05);t2.s=1.45}
       else{t2.x=0;t2.y=-1.5;t2.z=-4;t2.rx=0;t2.ry=0;t2.rz=0;t2.s=0}});
     PT.stone=c.lay==='stack'?1:0;PT.blocks=c.lay==='trio'?1:0;const pr=c.props!==false&&c.lay==='single';PT.rocks=(pr&&variant==='charcoal')?1:0;PT.berries=(pr&&variant==='wine')?1:0;PT.leaves=(pr&&variant==='aloe')?1:0;
-    const a=first||reduce?1:1-Math.pow(.002,dt);first=false;
+    const a=first||reduce?1:1-Math.pow(.006,dt);first=false;
     F.x+=(cx-F.x)*a;F.y+=(cy-F.y)*a;F.s+=(sc-F.s)*a;
     keys.forEach(kk=>{const s2=S[kk],t2=T[kk];for(const p in s2)s2[p]+=(t2[p]-s2[p])*a;const b=bottles[kk];
       const bob=(c.lay==='trio'||reduce)?0:Math.sin(t/1000+keys.indexOf(kk))*.06;b.position.set(F.x+s2.x*F.s,F.y+(s2.y+bob)*F.s,s2.z*F.s);b.userData.sh.material.opacity+=((c.lay==='trio'?.5:c.lay==='stack'?.32:0)-b.userData.sh.material.opacity)*a;b.rotation.set(s2.rx,s2.ry,s2.rz);b.scale.setScalar(Math.max(.0001,s2.s*F.s));b.visible=s2.s>.01});
@@ -175,7 +175,7 @@
     stone.position.set(0,-6.52,-.3);stone.scale.setScalar(Math.max(.0001,P.stone));stone.visible=P.stone>.01;
     blocks.scale.setScalar(Math.max(.0001,P.blocks));blocks.visible=P.blocks>.01;
     const tt=reduce?0:t/1000;
-    [[rocks,P.rocks],[berries,P.berries],[leaves,P.leaves]].forEach(([G,v])=>{G.visible=v>.01;G.scale.setScalar(Math.max(.0001,v));G.children.forEach(b=>{const u=b.userData;b.position.set(u.base[0],u.base[1]+(reduce?0:Math.sin(tt*.9+u.ph)*.12),u.base[2]);b.rotation.z=u.rz+(reduce?0:Math.sin(tt*.7+u.ph)*u.sw)})});
+    [[rocks,P.rocks],[berries,P.berries],[leaves,P.leaves]].forEach(([G,v])=>{G.visible=v>.01;G.scale.setScalar(Math.max(.0001,v));const mob=W<700;G.children.forEach(b=>{const u=b.userData;b.scale.setScalar((u.s0||(u.s0=b.scale.x))*(mob?.68:1));b.position.set(u.base[0]*(mob?.86:1)*(c.sp||1),u.base[1]+(reduce?0:Math.sin(tt*.9+u.ph)*.12),u.base[2]);b.rotation.z=u.rz+(reduce?0:Math.sin(tt*.7+u.ph)*u.sw)})});
     // water: helix around a single bottle, ribbon weaving through the stack
     const wantS=(c.lay==='single'&&c.water!==false)?1:0,wantK=c.lay==='stack'?1:0;P.ws=(P.ws||0)+(wantS-(P.ws||0))*a;P.wk=(P.wk||0)+(wantK-(P.wk||0))*a;
     waterMat.uniforms.time.value=reduce?0:t/1000;
@@ -185,5 +185,6 @@
     if(spray.visible)spray.children.forEach(s=>{const u=s.userData,k2=((u.o+t/1000*u.sp)%1);const pt=cv2.curve.getPointAt(k2);pt.applyEuler(cv2.m.rotation);s.position.copy(pt).add(u.j);s.material.opacity=cw*.9*Math.sin(k2*Math.PI)});
     Object.values(bottles).forEach(b=>{if(b.userData.run&&!reduce)b.userData.run.offset.y=-(t/1000)*.018});glints.forEach(m=>m.uniforms.time.value=reduce?.3:t/1000);
     R.render(scene,cam);requestAnimationFrame(tick)}
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)last=performance.now()});
   requestAnimationFrame(tick);document.documentElement.classList.add('has3d');
 })();
